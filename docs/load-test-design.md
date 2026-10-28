@@ -64,7 +64,7 @@ Error codes:
 |---|---|---|
 | `customers` | (required) | customer_id 1..N |
 | `items` | (required) | item_id 1..M |
-| `truncate` | false | Empty customers, items, orders and statements first (`InitService.truncateAll`, `TRUNCATE TABLE`) |
+| `truncate` | false | Empty customers, items, orders and statements first (`InitService.truncateAll`, `DELETE`) |
 | `credit_limit` | 10^15 | Large, so that 9800 does not distort the run |
 | `stock` | 10^9 | Large, so that 9801 does not distort the run |
 
@@ -113,7 +113,7 @@ On `customer.customers` only. Run in this order on the same data:
 | W4: 100% Read | `{"workload": "read", "match": "exact"}` |
 
 - `init` params: `record_count` (default 100,000, at most 999,999) and `truncate`
-  (default true: truncates `customer.customers` only). With `truncate: false` the rows are
+  (default true: empties `customer.customers` only, with `DELETE`). With `truncate: false` the rows are
   assumed to be there already (e.g. after a restart): only the count is remembered.
 - W1 inserts customer_id 1..record_count in order (one shared counter for all threads),
   name `TEST-%06d`, credit_limit 1,000,000, credit_total 0, and stops when all are in.

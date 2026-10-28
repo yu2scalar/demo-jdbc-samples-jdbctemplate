@@ -40,8 +40,8 @@ public class InitService {
         this.statementsRepository = statementsRepository;
     }
 
-    // Empties the four tables with TRUNCATE TABLE. Run it while nothing else uses them
-    // (Oracle commits a TRUNCATE at once; PostgreSQL waits for other transactions).
+    // Empties the four tables with DELETE (ScalarDB Native JDBC refuses TRUNCATE on a ScalarDB
+    // table). Run it while nothing else uses them.
     public void truncateAll() throws CustomException {
         truncate("ordering.statements", statementsRepository::truncate);
         truncate("ordering.orders", ordersRepository::truncate);

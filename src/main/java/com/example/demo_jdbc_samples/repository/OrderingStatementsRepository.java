@@ -1,6 +1,5 @@
 package com.example.demo_jdbc_samples.repository;
 
-import com.example.demo_jdbc_samples.config.SqlDialect;
 import com.example.demo_jdbc_samples.exception.CustomException;
 import com.example.demo_jdbc_samples.model.OrderingStatements;
 import java.util.List;
@@ -26,14 +25,11 @@ public class OrderingStatementsRepository {
         .build();
 
     private final JdbcTemplate jdbcTemplate;
-    private final String upsertSql;
 
     private int scanLimit = 100; // Default scan limit
 
-    public OrderingStatementsRepository(JdbcTemplate jdbcTemplate, SqlDialect dialect) {
+    public OrderingStatementsRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.upsertSql = dialect.upsert(TABLE, List.of(OrderingStatements.ORDER_ID, OrderingStatements.LINE_NO),
-            List.of(OrderingStatements.ITEM_ID, OrderingStatements.QTY, OrderingStatements.UNIT_PRICE));
     }
 
     public void setScanLimit(int scanLimit) {
@@ -64,19 +60,25 @@ public class OrderingStatementsRepository {
 
     // Update Record (if exists)
     public OrderingStatements updateOrderingStatements(OrderingStatements statements) {
-        int rows = jdbcTemplate.update("UPDATE " + TABLE + " SET item_id = ?, qty = ?, unit_price = ? WHERE order_id = ? AND line_no = ?",
-            statements.getItemId(), statements.getQty(), statements.getUnitPrice(), statements.getOrderId(), statements.getLineNo());
-        if (rows == 0) {
+        if (updateRow(statements) == 0) {
             throw new CustomException("Update condition not met: no record in OrderingStatements", 9100);
         }
         return statements;
     }
 
-    // Upsert Record
+    // Upsert Record: update, or insert if there is no such row. No ON CONFLICT / MERGE, so the
+    // same SQL runs on PostgreSQL, Oracle and through ScalarDB Native JDBC (which refuses them).
+    // A concurrent insert of the same key fails with a duplicate key.
     public OrderingStatements upsertOrderingStatements(OrderingStatements statements) {
-        jdbcTemplate.update(upsertSql,
-            statements.getOrderId(), statements.getLineNo(), statements.getItemId(), statements.getQty(), statements.getUnitPrice());
+        if (updateRow(statements) == 0) {
+            insertOrderingStatements(statements);
+        }
         return statements;
+    }
+
+    private int updateRow(OrderingStatements statements) {
+        return jdbcTemplate.update("UPDATE " + TABLE + " SET item_id = ?, qty = ?, unit_price = ? WHERE order_id = ? AND line_no = ?",
+            statements.getItemId(), statements.getQty(), statements.getUnitPrice(), statements.getOrderId(), statements.getLineNo());
     }
 
     // Delete Record (if exists)
@@ -101,6 +103,7 @@ public class OrderingStatementsRepository {
     }
 
     public void truncate() {
-        jdbcTemplate.execute("TRUNCATE TABLE " + TABLE);
+        // DELETE, not TRUNCATE: ScalarDB Native JDBC refuses TRUNCATE on a ScalarDB table
+        jdbcTemplate.update("DELETE FROM " + TABLE);
     }
 }

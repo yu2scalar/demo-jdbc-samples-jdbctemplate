@@ -1,9 +1,9 @@
 package com.example.demo_jdbc_samples.config;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -11,15 +11,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class JdbcConfig {
 
-    // The dialect follows the database actually connected to
+    // Logs the database actually connected to. The SQL is the same for every database
+    // (no upsert statement, DELETE instead of TRUNCATE), so nothing depends on it.
     @Bean
-    public SqlDialect sqlDialect(DataSource dataSource) throws SQLException {
-        try (Connection connection = dataSource.getConnection()) {
-            String product = connection.getMetaData().getDatabaseProductName();
-            String version = connection.getMetaData().getDatabaseProductVersion();
-            SqlDialect dialect = SqlDialect.fromProductName(product);
-            log.info("Database: {} {} -> dialect {}", product, version, dialect);
-            return dialect;
-        }
+    public ApplicationRunner logDatabase(DataSource dataSource) {
+        return args -> {
+            try (Connection connection = dataSource.getConnection()) {
+                log.info("Database: {} {} ({})", connection.getMetaData().getDatabaseProductName(),
+                    connection.getMetaData().getDatabaseProductVersion(), connection.getMetaData().getURL());
+            }
+        };
     }
 }

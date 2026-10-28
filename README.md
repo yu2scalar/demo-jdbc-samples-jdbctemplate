@@ -89,7 +89,8 @@ sqlplus <dba-user>/<password>@//<host>:1521/<service> @schema/oracle.sql
 sqlplus <dba-user>/<password>@//<host>:1521/<service> @schema/oracle-drop.sql
 ```
 
-To empty the tables without dropping them, use `POST /init?truncate=true`.
+To empty the tables without dropping them, use `POST /init?truncate=true` (it runs `DELETE`, not
+`TRUNCATE`).
 
 ## 3. Configuration
 
@@ -113,8 +114,8 @@ on the command line instead, e.g. `--spring.datasource.password=...`.)
   larger than the number of load-test threads, and within the database's connection limit)
 - the retry settings (`retry.*`, the same values as the ScalarDB version)
 
-At startup the log shows the database and the SQL dialect in use, e.g.
-`Database: PostgreSQL 16.15 -> dialect POSTGRESQL`.
+At startup the log shows the database connected to, e.g.
+`Database: PostgreSQL 16.15 (jdbc:postgresql://…/db_native)`.
 
 ## 4. Run
 
@@ -156,7 +157,7 @@ The same scenarios, parameters and response as the ScalarDB version. Details:
 [docs/load-test-design.md](docs/load-test-design.md).
 
 **Run one load test at a time, with no other load on the same database server.** `init`
-truncates tables, and the database check assumes that nothing else writes to them.
+empties tables, and the database check assumes that nothing else writes to them.
 
 ```bash
 B=http://localhost:8080/load-test/place-order
@@ -177,10 +178,34 @@ curl -s -X POST $C/run -H 'Content-Type: application/json' \
        "params":{"workload":"rmw","read_ratio":50,"match":"exact"}}'
 ```
 
+## 7. ScalarDB Native JDBC
+
+The same code runs through [ScalarDB Native JDBC](https://github.com/scalar-labs/scalardb-native-jdbc)
+(private preview), a JDBC driver that wraps the database's own and keeps ScalarDB's transactions on
+the same tables correct. The SQL is unchanged: the driver refuses upserts and `TRUNCATE` on
+ScalarDB tables, which this sample does not use.
+
+1. Build the driver and its tools, and publish the driver to `~/.m2` (this build's `mavenLocal()`):
+   `./gradlew :driver:publishToMavenLocal :shell:installDist :tools:installDist` in the driver's
+   repository (JDK 25).
+2. Create the tables with `schema/postgresql.sql` or `schema/oracle.sql`, in a database of their
+   own (e.g. `db_native_jdbc`), then import them into ScalarDB with ScalarDB's Schema Loader
+   (3.19.1): `--import` with `{"customer.customers": {"transaction": true}, ...}` for the four
+   tables (upper-case names on Oracle, e.g. `CUSTOMER.CUSTOMERS`), then `--coordinator`. The
+   Schema Loader's settings need `scalar.db.jdbc.isolation_level=REPEATABLE_READ` on PostgreSQL,
+   `SERIALIZABLE` on Oracle (Oracle's driver refuses REPEATABLE READ).
+3. Set the tables up for the driver:
+   `scalardb-native-tools setup <url> -U <admin> --grant <user>`, then `scalardb-native-tools check <url> -U <admin>`.
+4. Copy `application-native-postgresql.properties.example` or
+   `application-native-oracle.properties.example`, set the values, rebuild, and run with
+   `--spring.profiles.active=native-postgresql` (or `native-oracle`).
+
 ## Notes
 
-- `POST /init` upserts (PostgreSQL: `INSERT ... ON CONFLICT DO UPDATE`, Oracle: `MERGE`).
-  Orders are kept unless `truncate=true`.
+- `POST /init` and `POST /<table>/upsert` upsert by updating the row, or inserting it when there
+  is none, in one transaction. No `ON CONFLICT` / `MERGE` (ScalarDB Native JDBC refuses them), so
+  the SQL is the same for every database. Orders are kept unless `truncate=true`, which empties
+  the tables with `DELETE` (ScalarDB Native JDBC refuses `TRUNCATE` on a ScalarDB table).
 - Each failed transaction attempt is logged at ERROR with a stack trace, as in the
   ScalarDB version.
 - The index on `name` is a plain B-tree, as in the ScalarDB version. With a non-C

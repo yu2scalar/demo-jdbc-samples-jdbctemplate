@@ -1,6 +1,5 @@
 package com.example.demo_jdbc_samples.repository;
 
-import com.example.demo_jdbc_samples.config.SqlDialect;
 import com.example.demo_jdbc_samples.exception.CustomException;
 import com.example.demo_jdbc_samples.model.InventoryItems;
 import java.util.List;
@@ -25,14 +24,11 @@ public class InventoryItemsRepository {
         .build();
 
     private final JdbcTemplate jdbcTemplate;
-    private final String upsertSql;
 
     private int scanLimit = 100; // Default scan limit
 
-    public InventoryItemsRepository(JdbcTemplate jdbcTemplate, SqlDialect dialect) {
+    public InventoryItemsRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.upsertSql = dialect.upsert(TABLE, List.of(InventoryItems.ITEM_ID),
-            List.of(InventoryItems.NAME, InventoryItems.PRICE, InventoryItems.STOCK));
     }
 
     public void setScanLimit(int scanLimit) {
@@ -70,18 +66,25 @@ public class InventoryItemsRepository {
 
     // Update Record (if exists)
     public InventoryItems updateInventoryItems(InventoryItems items) {
-        int rows = jdbcTemplate.update("UPDATE " + TABLE + " SET name = ?, price = ?, stock = ? WHERE item_id = ?",
-            items.getName(), items.getPrice(), items.getStock(), items.getItemId());
-        if (rows == 0) {
+        if (updateRow(items) == 0) {
             throw new CustomException("Update condition not met: no record in InventoryItems", 9100);
         }
         return items;
     }
 
-    // Upsert Record
+    // Upsert Record: update, or insert if there is no such row. No ON CONFLICT / MERGE, so the
+    // same SQL runs on PostgreSQL, Oracle and through ScalarDB Native JDBC (which refuses them).
+    // A concurrent insert of the same key fails with a duplicate key.
     public InventoryItems upsertInventoryItems(InventoryItems items) {
-        jdbcTemplate.update(upsertSql, items.getItemId(), items.getName(), items.getPrice(), items.getStock());
+        if (updateRow(items) == 0) {
+            insertInventoryItems(items);
+        }
         return items;
+    }
+
+    private int updateRow(InventoryItems items) {
+        return jdbcTemplate.update("UPDATE " + TABLE + " SET name = ?, price = ?, stock = ? WHERE item_id = ?",
+            items.getName(), items.getPrice(), items.getStock(), items.getItemId());
     }
 
     // Delete Record (if exists)
@@ -105,6 +108,7 @@ public class InventoryItemsRepository {
     }
 
     public void truncate() {
-        jdbcTemplate.execute("TRUNCATE TABLE " + TABLE);
+        // DELETE, not TRUNCATE: ScalarDB Native JDBC refuses TRUNCATE on a ScalarDB table
+        jdbcTemplate.update("DELETE FROM " + TABLE);
     }
 }

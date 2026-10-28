@@ -4,7 +4,9 @@
 --
 -- The columns, primary keys and indexes are those of the ScalarDB version. The types are
 -- what ScalarDB creates on Oracle: TEXT in a key or an index is VARCHAR2(128), other TEXT
--- is VARCHAR2(4000), INT is NUMBER(10) and BIGINT is NUMBER(19).
+-- is VARCHAR2(4000) and INT is NUMBER(10). BIGINT is NUMBER(18), not NUMBER(18): ScalarDB's
+-- Schema Loader (3.19.1) imports NUMBER of precision 18 at most, and the tables are imported
+-- into ScalarDB for ScalarDB Native JDBC.
 SET SERVEROUTPUT ON
 DECLARE
   PROCEDURE run(p_sql VARCHAR2) IS
@@ -24,17 +26,17 @@ BEGIN
   run('CREATE TABLE customer.customers (
          customer_id  NUMBER(10) NOT NULL,
          name         VARCHAR2(128),
-         credit_limit NUMBER(19),
-         credit_total NUMBER(19),
+         credit_limit NUMBER(18),
+         credit_total NUMBER(18),
          PRIMARY KEY (customer_id))');
   run('CREATE INDEX customer.index_customer_customers_name ON customer.customers (name)');
 
   run('CREATE TABLE ordering.orders (
          order_id     VARCHAR2(128) NOT NULL,
          customer_id  NUMBER(10),
-         created_at   NUMBER(19),
+         created_at   NUMBER(18),
          status       VARCHAR2(4000),
-         total_amount NUMBER(19),
+         total_amount NUMBER(18),
          PRIMARY KEY (order_id))');
   run('CREATE INDEX ordering.index_ordering_orders_customer_id ON ordering.orders (customer_id)');
   run('CREATE INDEX ordering.index_ordering_orders_created_at ON ordering.orders (created_at)');
@@ -44,14 +46,14 @@ BEGIN
          line_no    NUMBER(10) NOT NULL,
          item_id    NUMBER(10),
          qty        NUMBER(10),
-         unit_price NUMBER(19),
+         unit_price NUMBER(18),
          PRIMARY KEY (order_id, line_no))');
   run('CREATE INDEX ordering.index_ordering_statements_item_id ON ordering.statements (item_id)');
 
   run('CREATE TABLE inventory.items (
          item_id NUMBER(10) NOT NULL,
          name    VARCHAR2(128),
-         price   NUMBER(19),
+         price   NUMBER(18),
          stock   NUMBER(10),
          PRIMARY KEY (item_id))');
   run('CREATE INDEX inventory.index_inventory_items_name ON inventory.items (name)');

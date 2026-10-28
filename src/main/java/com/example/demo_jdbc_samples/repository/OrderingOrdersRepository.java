@@ -1,6 +1,5 @@
 package com.example.demo_jdbc_samples.repository;
 
-import com.example.demo_jdbc_samples.config.SqlDialect;
 import com.example.demo_jdbc_samples.exception.CustomException;
 import com.example.demo_jdbc_samples.model.OrderingOrders;
 import java.util.List;
@@ -26,14 +25,11 @@ public class OrderingOrdersRepository {
         .build();
 
     private final JdbcTemplate jdbcTemplate;
-    private final String upsertSql;
 
     private int scanLimit = 100; // Default scan limit
 
-    public OrderingOrdersRepository(JdbcTemplate jdbcTemplate, SqlDialect dialect) {
+    public OrderingOrdersRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.upsertSql = dialect.upsert(TABLE, List.of(OrderingOrders.ORDER_ID),
-            List.of(OrderingOrders.CUSTOMER_ID, OrderingOrders.CREATED_AT, OrderingOrders.STATUS, OrderingOrders.TOTAL_AMOUNT));
     }
 
     public void setScanLimit(int scanLimit) {
@@ -71,19 +67,25 @@ public class OrderingOrdersRepository {
 
     // Update Record (if exists)
     public OrderingOrders updateOrderingOrders(OrderingOrders orders) {
-        int rows = jdbcTemplate.update("UPDATE " + TABLE + " SET customer_id = ?, created_at = ?, status = ?, total_amount = ? WHERE order_id = ?",
-            orders.getCustomerId(), orders.getCreatedAt(), orders.getStatus(), orders.getTotalAmount(), orders.getOrderId());
-        if (rows == 0) {
+        if (updateRow(orders) == 0) {
             throw new CustomException("Update condition not met: no record in OrderingOrders", 9100);
         }
         return orders;
     }
 
-    // Upsert Record
+    // Upsert Record: update, or insert if there is no such row. No ON CONFLICT / MERGE, so the
+    // same SQL runs on PostgreSQL, Oracle and through ScalarDB Native JDBC (which refuses them).
+    // A concurrent insert of the same key fails with a duplicate key.
     public OrderingOrders upsertOrderingOrders(OrderingOrders orders) {
-        jdbcTemplate.update(upsertSql,
-            orders.getOrderId(), orders.getCustomerId(), orders.getCreatedAt(), orders.getStatus(), orders.getTotalAmount());
+        if (updateRow(orders) == 0) {
+            insertOrderingOrders(orders);
+        }
         return orders;
+    }
+
+    private int updateRow(OrderingOrders orders) {
+        return jdbcTemplate.update("UPDATE " + TABLE + " SET customer_id = ?, created_at = ?, status = ?, total_amount = ? WHERE order_id = ?",
+            orders.getCustomerId(), orders.getCreatedAt(), orders.getStatus(), orders.getTotalAmount(), orders.getOrderId());
     }
 
     // Delete Record (if exists)
@@ -113,6 +115,7 @@ public class OrderingOrdersRepository {
     }
 
     public void truncate() {
-        jdbcTemplate.execute("TRUNCATE TABLE " + TABLE);
+        // DELETE, not TRUNCATE: ScalarDB Native JDBC refuses TRUNCATE on a ScalarDB table
+        jdbcTemplate.update("DELETE FROM " + TABLE);
     }
 }

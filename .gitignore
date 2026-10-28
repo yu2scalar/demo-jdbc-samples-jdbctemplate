@@ -39,3 +39,5 @@ out/
 ### Local database settings (contain passwords): copy from *.properties.example ###
 src/main/resources/application-postgresql.properties
 src/main/resources/application-oracle.properties
+src/main/resources/application-native-postgresql.properties
+src/main/resources/application-native-oracle.properties

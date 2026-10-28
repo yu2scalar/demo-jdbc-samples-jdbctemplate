@@ -1,6 +1,5 @@
 package com.example.demo_jdbc_samples.repository;
 
-import com.example.demo_jdbc_samples.config.SqlDialect;
 import com.example.demo_jdbc_samples.exception.CustomException;
 import com.example.demo_jdbc_samples.model.CustomerCustomers;
 import java.util.List;
@@ -25,14 +24,11 @@ public class CustomerCustomersRepository {
         .build();
 
     private final JdbcTemplate jdbcTemplate;
-    private final String upsertSql;
 
     private int scanLimit = 100; // Default scan limit
 
-    public CustomerCustomersRepository(JdbcTemplate jdbcTemplate, SqlDialect dialect) {
+    public CustomerCustomersRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.upsertSql = dialect.upsert(TABLE, List.of(CustomerCustomers.CUSTOMER_ID),
-            List.of(CustomerCustomers.NAME, CustomerCustomers.CREDIT_LIMIT, CustomerCustomers.CREDIT_TOTAL));
     }
 
     public void setScanLimit(int scanLimit) {
@@ -70,19 +66,25 @@ public class CustomerCustomersRepository {
 
     // Update Record (if exists)
     public CustomerCustomers updateCustomerCustomers(CustomerCustomers customers) {
-        int rows = jdbcTemplate.update("UPDATE " + TABLE + " SET name = ?, credit_limit = ?, credit_total = ? WHERE customer_id = ?",
-            customers.getName(), customers.getCreditLimit(), customers.getCreditTotal(), customers.getCustomerId());
-        if (rows == 0) {
+        if (updateRow(customers) == 0) {
             throw new CustomException("Update condition not met: no record in CustomerCustomers", 9100);
         }
         return customers;
     }
 
-    // Upsert Record
+    // Upsert Record: update, or insert if there is no such row. No ON CONFLICT / MERGE, so the
+    // same SQL runs on PostgreSQL, Oracle and through ScalarDB Native JDBC (which refuses them).
+    // A concurrent insert of the same key fails with a duplicate key.
     public CustomerCustomers upsertCustomerCustomers(CustomerCustomers customers) {
-        jdbcTemplate.update(upsertSql,
-            customers.getCustomerId(), customers.getName(), customers.getCreditLimit(), customers.getCreditTotal());
+        if (updateRow(customers) == 0) {
+            insertCustomerCustomers(customers);
+        }
         return customers;
+    }
+
+    private int updateRow(CustomerCustomers customers) {
+        return jdbcTemplate.update("UPDATE " + TABLE + " SET name = ?, credit_limit = ?, credit_total = ? WHERE customer_id = ?",
+            customers.getName(), customers.getCreditLimit(), customers.getCreditTotal(), customers.getCustomerId());
     }
 
     // Delete Record (if exists)
@@ -124,6 +126,7 @@ public class CustomerCustomersRepository {
     }
 
     public void truncate() {
-        jdbcTemplate.execute("TRUNCATE TABLE " + TABLE);
+        // DELETE, not TRUNCATE: ScalarDB Native JDBC refuses TRUNCATE on a ScalarDB table
+        jdbcTemplate.update("DELETE FROM " + TABLE);
     }
 }

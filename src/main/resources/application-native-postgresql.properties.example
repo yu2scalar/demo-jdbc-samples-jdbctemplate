@@ -1,0 +1,10 @@
+# Copy to application-native-postgresql.properties and set your values (not in git).
+# ScalarDB Native JDBC on PostgreSQL: the tables are ScalarDB's (created with ScalarDB's Schema Loader
+# from the ScalarDB version's schema.json, in a database of their own, e.g. db_native_jdbc), set up
+# once with `scalardb-native-tools setup <url> -U <admin> --grant <user>`.
+spring.datasource.url=jdbc:scalardb-native:postgresql://<host>:5432/db_native_jdbc
+# Spring Boot cannot tell the driver class from a jdbc:scalardb-native: URL
+spring.datasource.driver-class-name=com.scalar.db.nativejdbc.NativeJdbcDriver
+spring.datasource.username=<user>
+spring.datasource.password=<password>
+#spring.datasource.hikari.maximum-pool-size=20

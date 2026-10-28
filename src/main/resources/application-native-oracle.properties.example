@@ -1,0 +1,10 @@
+# Copy to application-native-oracle.properties and set your values (not in git).
+# ScalarDB Native JDBC on Oracle: the tables are ScalarDB's (created with ScalarDB's Schema Loader
+# from the ScalarDB version's schema.json), set up once with
+# `scalardb-native-tools setup <url> -U <admin> --grant <user>`.
+spring.datasource.url=jdbc:scalardb-native:oracle:thin:@//<host>:1521/<service>
+# Spring Boot cannot tell the driver class from a jdbc:scalardb-native: URL
+spring.datasource.driver-class-name=com.scalar.db.nativejdbc.NativeJdbcDriver
+spring.datasource.username=<user>
+spring.datasource.password=<password>
+#spring.datasource.hikari.maximum-pool-size=20
