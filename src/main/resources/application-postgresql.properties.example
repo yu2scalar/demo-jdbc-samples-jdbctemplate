@@ -1,0 +1,6 @@
+# Copy to application-postgresql.properties and set your values (not in git).
+# The tables are created by schema/postgresql.sql in the database db_native.
+spring.datasource.url=jdbc:postgresql://<host>:5432/db_native
+spring.datasource.username=<user>
+spring.datasource.password=<password>
+#spring.datasource.hikari.maximum-pool-size=20

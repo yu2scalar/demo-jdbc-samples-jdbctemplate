@@ -1,0 +1,7 @@
+# Copy to application-oracle.properties and set your values (not in git). Tested on Oracle Database 23ai Free.
+# The tables are created by schema/oracle.sql. For now, use a DBA-level user:
+# the tables are in three schemas (customer, ordering, inventory).
+spring.datasource.url=jdbc:oracle:thin:@//<host>:1521/<service>
+spring.datasource.username=<user>
+spring.datasource.password=<password>
+#spring.datasource.hikari.maximum-pool-size=20
