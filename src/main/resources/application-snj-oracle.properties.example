@@ -1,4 +1,4 @@
-# Copy to application-native-oracle.properties and set your values (not in git).
+# Copy to application-snj-oracle.properties and set your values (not in git).
 # ScalarDB Native JDBC on Oracle: the tables are ScalarDB's (created with ScalarDB's Schema Loader
 # from the ScalarDB version's schema.json), set up once with
 # `scalardb-native-tools setup <url> -U <admin> --grant <user>`.

@@ -1,4 +1,4 @@
-# Copy to application-native-postgresql.properties and set your values (not in git).
+# Copy to application-snj-postgresql.properties and set your values (not in git).
 # ScalarDB Native JDBC on PostgreSQL: the tables are ScalarDB's (created with ScalarDB's Schema Loader
 # from the ScalarDB version's schema.json, in a database of their own, e.g. db_native_jdbc), set up
 # once with `scalardb-native-tools setup <url> -U <admin> --grant <user>`.

@@ -196,9 +196,35 @@ ScalarDB tables, which this sample does not use.
    `SERIALIZABLE` on Oracle (Oracle's driver refuses REPEATABLE READ).
 3. Set the tables up for the driver:
    `scalardb-native-tools setup <url> -U <admin> --grant <user>`, then `scalardb-native-tools check <url> -U <admin>`.
-4. Copy `application-native-postgresql.properties.example` or
-   `application-native-oracle.properties.example`, set the values, rebuild, and run with
-   `--spring.profiles.active=native-postgresql` (or `native-oracle`).
+4. Copy `application-snj-postgresql.properties.example` or
+   `application-snj-oracle.properties.example`, set the values, rebuild, and run with
+   `--spring.profiles.active=snj-postgresql` (or `snj-oracle`).
+
+## 8. ScalarDB PostgreSQL Frontend
+
+The same code runs against [ScalarDB PostgreSQL Frontend](https://github.com/scalar-labs/scalardb-postgres-frontend)
+(experimental), a server that speaks PostgreSQL's wire protocol and runs the SQL as ScalarDB
+transactions. The application connects with the PostgreSQL JDBC driver, as to PostgreSQL; the
+database behind the frontend can be any of ScalarDB's storages (e.g. PostgreSQL or Oracle).
+
+1. Build the frontend: `./gradlew shadowJar` in its repository (JDK 25).
+2. Create the tables with ScalarDB's Schema Loader from the ScalarDB version's `schema.json`
+   (with `--coordinator`), as for the ScalarDB version.
+3. Start the frontend on ScalarDB core: `java -jar scalardb-postgres-frontend.jar <scalardb.properties> 15432`,
+   with `scalar.db.cross_partition_scan.enabled`, `.filtering.enabled` and `.ordering.enabled` set to
+   `true` (the name search scans across partitions). Without authentication, keep it on a trusted
+   network (`scalar.db.postgres.listen_address=127.0.0.1`).
+4. Copy `application-frontend.properties.example`, set the values, rebuild, and run with
+   `--spring.profiles.active=frontend`.
+
+What differs from PostgreSQL (the frontend's `LIMITATIONS.md` and `docs/user/transactions.md`):
+
+- `SELECT ... FOR UPDATE` is accepted but takes no lock. A conflict is found at `COMMIT` and
+  reported as SQLSTATE `40001`; Spring turns it into a `TransientDataAccessException`, so the
+  transaction is retried as a deadlock or serialization failure is.
+- When the outcome of a `COMMIT` is unknown, the frontend reports SQLSTATE `40003`. Spring maps the
+  class `40` to `PessimisticLockingFailureException`, a `TransientDataAccessException`, so this
+  sample retries it too, although the transaction may have been committed.
 
 ## Notes
 

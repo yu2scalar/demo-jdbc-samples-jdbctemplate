@@ -32,7 +32,7 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
     runtimeOnly 'org.postgresql:postgresql'
     runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
-    // jdbc:scalardb-native:... URLs (profiles native-postgresql / native-oracle); wraps the drivers above
+    // jdbc:scalardb-native:... URLs (profiles snj-postgresql / snj-oracle); wraps the drivers above
     runtimeOnly 'com.scalar-labs:scalardb-native-jdbc:3.20.0-beta.1-SNAPSHOT'
 }
 

@@ -1,0 +1,9 @@
+# Copy to application-frontend.properties and set your values (not in git).
+# ScalarDB PostgreSQL Frontend, the standalone server on ScalarDB core: the tables are ScalarDB's
+# (created with ScalarDB's Schema Loader from the ScalarDB version's schema.json). The database
+# name is a ScalarDB namespace; the SQL names every table with its namespace (customer.customers,
+# ...), so the other namespaces are reached too.
+spring.datasource.url=jdbc:postgresql://<host>:15432/customer
+# Without authentication (the only mode on ScalarDB core) the frontend takes any user name
+spring.datasource.username=<user>
+#spring.datasource.hikari.maximum-pool-size=20
