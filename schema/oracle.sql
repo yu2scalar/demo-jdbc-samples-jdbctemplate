@@ -4,7 +4,7 @@
 --
 -- The columns, primary keys and indexes are those of the ScalarDB version. The types are
 -- what ScalarDB creates on Oracle: TEXT in a key or an index is VARCHAR2(128), other TEXT
--- is VARCHAR2(4000) and INT is NUMBER(10). BIGINT is NUMBER(18), not NUMBER(18): ScalarDB's
+-- is VARCHAR2(4000) and INT is NUMBER(10). BIGINT is NUMBER(18), not NUMBER(19): ScalarDB's
 -- Schema Loader (3.19.1) imports NUMBER of precision 18 at most, and the tables are imported
 -- into ScalarDB for ScalarDB Native JDBC.
 SET SERVEROUTPUT ON

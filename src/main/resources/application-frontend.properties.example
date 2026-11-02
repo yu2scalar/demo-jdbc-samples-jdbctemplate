@@ -3,7 +3,11 @@
 # (created with ScalarDB's Schema Loader from the ScalarDB version's schema.json). The database
 # name is a ScalarDB namespace; the SQL names every table with its namespace (customer.customers,
 # ...), so the other namespaces are reached too.
-spring.datasource.url=jdbc:postgresql://<host>:15432/customer
+# options: the frontend refuses a statement that writes more than 10,000 rows by default (session
+# setting scalardb.max_rows_per_write), and POST /init empties whole tables with one DELETE each.
+# Set at connection start, not with connection-init-sql: Hikari leaves that SET in an uncommitted
+# transaction, and a rollback undoes it.
+spring.datasource.url=jdbc:postgresql://<host>:15432/customer?options=-c%20scalardb.max_rows_per_write=0
 # Without authentication (the only mode on ScalarDB core) the frontend takes any user name
 spring.datasource.username=<user>
 #spring.datasource.hikari.maximum-pool-size=20
