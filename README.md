@@ -185,9 +185,9 @@ The same code runs through [ScalarDB Native JDBC](https://github.com/scalar-labs
 the same tables correct. The SQL is unchanged: the driver refuses upserts and `TRUNCATE` on
 ScalarDB tables, which this sample does not use.
 
-1. Build the driver and its tools, and publish the driver to `~/.m2` (this build's `mavenLocal()`):
-   `./gradlew :driver:publishToMavenLocal :shell:installDist :tools:installDist` in the driver's
-   repository (JDK 25).
+1. The driver (3.20.0) comes from Maven Central with this build. Get its tools from the release:
+   `scalardb-native-tools-3.20.0.zip` of the driver's v3.20.0 release on GitHub (unzip it and run
+   `bin/scalardb-native-tools`; JDK 25).
 2. Create the tables with `schema/postgresql.sql` or `schema/oracle.sql`, in a database of their
    own (e.g. `db_native_jdbc`), then import them into ScalarDB with ScalarDB's Schema Loader
    (3.19.1): `--import` with `{"customer.customers": {"transaction": true}, ...}` for the four

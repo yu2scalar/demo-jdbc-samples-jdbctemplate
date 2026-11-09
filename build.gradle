@@ -15,9 +15,6 @@ java {
 
 repositories {
 	mavenCentral()
-	// ScalarDB Native JDBC is not on Maven Central yet: build it and publish it to ~/.m2
-	// (scalardb-native-jdbc: ./gradlew :driver:publishToMavenLocal)
-	mavenLocal()
 }
 
 dependencies {
@@ -33,7 +30,7 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
     // jdbc:scalardb-native:... URLs (profiles snj-postgresql / snj-oracle); wraps the drivers above
-    runtimeOnly 'com.scalar-labs:scalardb-native-jdbc:3.20.0-beta.1-SNAPSHOT'
+    runtimeOnly 'com.scalar-labs:scalardb-native-jdbc:3.20.0'
 }
 
 tasks.named('test') {

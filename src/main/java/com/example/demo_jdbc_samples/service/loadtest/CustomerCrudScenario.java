@@ -30,6 +30,8 @@ import org.springframework.stereotype.Component;
  * The search picks a random customer_id in 1..record_count and searches its name
  * (TEST-%06d, as InitService) with a SELECT on name: exact (name = ?) or prefix
  * (the last prefix_digits digits replaced by %, up to 10^prefix_digits rows).
+ * match=key (W5 rmw, W6 read) reads that customer_id by the primary key instead, and the
+ * RMW reads it with SELECT ... FOR UPDATE (no name search).
  */
 @Slf4j
 @Component
@@ -106,7 +108,7 @@ public class CustomerCrudScenario implements LoadTestScenario<CustomerCrudScenar
         return result;
     }
 
-    // params: workload (insert / rmw / read), rows_per_tx (1), match (exact / prefix),
+    // params: workload (insert / rmw / read), rows_per_tx (1), match (exact / prefix / key),
     // prefix_digits (1), read_ratio (rmw: 50)
     @Override
     public void beforeRun(LoadTestParams params) throws CustomException {
@@ -131,8 +133,9 @@ public class CustomerCrudScenario implements LoadTestScenario<CustomerCrudScenar
             }
             case "rmw", "read" -> {
                 String match = params.asMap().getOrDefault("match", CustomerCrudService.EXACT).toString();
-                if (!CustomerCrudService.EXACT.equals(match) && !CustomerCrudService.PREFIX.equals(match)) {
-                    throw new CustomException("match must be exact or prefix: " + match, OrderRules.INVALID_REQUEST);
+                if (!CustomerCrudService.EXACT.equals(match) && !CustomerCrudService.PREFIX.equals(match)
+                        && !CustomerCrudService.KEY.equals(match)) {
+                    throw new CustomException("match must be exact, prefix or key: " + match, OrderRules.INVALID_REQUEST);
                 }
                 int d = params.getInt("prefix_digits", 1);
                 if (d < 1 || d > 5) {
@@ -165,7 +168,20 @@ public class CustomerCrudScenario implements LoadTestScenario<CustomerCrudScenar
         String match = params.asMap().getOrDefault("match", CustomerCrudService.EXACT).toString();
         int d = params.getInt("prefix_digits", 1);
         int ratio = params.getInt("read_ratio", "read".equals(workload) ? 100 : 50);
-        String name = OrderRules.testName(1 + random.nextInt(recordCount));
+        int customerId = 1 + random.nextInt(recordCount);
+        if (CustomerCrudService.KEY.equals(match)) {
+            if (random.nextInt(100) < ratio) {
+                countHits(crudService.readByKey(customerId).size(), false, 0);
+                return null;
+            }
+            int updated = crudService.readModifyWriteByKey(customerId);
+            searches.incrementAndGet();
+            if (updated == 0) {
+                zeroHits.incrementAndGet();
+            }
+            return new Call(0, 0, updated);
+        }
+        String name = OrderRules.testName(customerId);
         boolean prefix = CustomerCrudService.PREFIX.equals(match);
         String value = prefix ? name.substring(0, name.length() - d) : name;
         int limit = prefix ? (int) Math.pow(10, d) : 0;
